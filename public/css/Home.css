@@ -1,0 +1,12 @@
+h1 {
+    color: #1c2dc7;
+    text-align: center;
+    font-size: 200px;
+}
+
+.container-ps {
+  background-color: #ffff;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}   
