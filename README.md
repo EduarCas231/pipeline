@@ -1,118 +1,112 @@
 # CI Pipeline para Laravel
 
-## Objetivo
+## Descripcion del proyecto
 
-Automatizar la instalación de dependencias y la ejecución de pruebas de la aplicación Laravel mediante GitHub Actions, de modo que cada cambio enviado a la rama `main` sea validado automáticamente.
+Aplicacion web construida con Laravel que incluye una pagina de inicio y un pipeline de integracion continua configurado con GitHub Actions. Cada cambio enviado a la rama `main` dispara automaticamente la instalacion de dependencias y la ejecucion de las pruebas, garantizando que el codigo integrado funcione correctamente.
 
-## Tecnologías
+## Tecnologias
 
 - PHP 8.2
 - Laravel
 - Composer
 - PHPUnit
-- Git y GitHub
 - GitHub Actions
 
-## Requisitos
+## Estructura del proyecto
 
-- PHP compatible con el proyecto (8.2 o superior)
-- Composer
-- Git
-- Acceso al repositorio de GitHub
+```
+pipe/
+├── app/                  Logica de la aplicacion (modelos, controladores, proveedores)
+├── database/             Migraciones, factories y seeders
+├── public/               Punto de entrada HTTP y assets estaticos
+├── resources/views/      Vistas Blade (Home.blade.php, welcome.blade.php)
+├── routes/web.php        Definicion de rutas web
+├── tests/
+│   ├── Feature/          Pruebas de integracion HTTP
+│   └── Unit/             Pruebas unitarias
+├── .github/workflows/
+│   └── ci.yml            Workflow de GitHub Actions
+└── phpunit.xml           Configuracion de PHPUnit
+```
 
-## Instalación local
+## Como funciona
+
+La ruta principal `/` devuelve la vista `Home`. Las pruebas verifican que esa ruta responde con HTTP 200. El archivo `phpunit.xml` configura el entorno de pruebas para usar SQLite en memoria, por lo que no se necesita una base de datos real para ejecutar los tests.
+
+## Instalacion local
 
 1. Clonar el repositorio:
+
 ```bash
-   git clone https://github.com/EduarCas231/pipeline.git
-   cd pipeline
-```
-2. Instalar las dependencias:
-```bash
-   composer install
-```
-3. Copiar el archivo de entorno:
-```bash
-   cp .env.example .env
-```
-4. Generar la clave de la aplicación:
-```bash
-   php artisan key:generate
-```
-5. Configurar la base de datos requerida en el archivo `.env`.
-6. Ejecutar las migraciones si son necesarias:
-```bash
-   php artisan migrate
-```
-7. Ejecutar las pruebas:
-```bash
-   php artisan test
+git clone https://github.com/EduarCas231/pipeline.git
+cd pipeline
 ```
 
-## Integración continua
+2. Instalar dependencias:
 
-El workflow `.github/workflows/ci.yml` se ejecuta al enviar cambios a la rama `main` o al crear una solicitud de integración (pull request) dirigida a ella.
+```bash
+composer install
+```
 
-Pasos que ejecuta el job `laravel-tests`:
+3. Configurar el entorno:
 
-1. Obtener el código del repositorio (`actions/checkout@v4`).
-2. Configurar PHP 8.2 con las extensiones necesarias (`shivammathur/setup-php@v2`).
-3. Validar `composer.json` con `composer validate`.
-4. Instalar las dependencias con `composer install`.
-5. Preparar el entorno de Laravel (`.env`, `key:generate`, `config:clear`).
-6. Ejecutar las pruebas con `php artisan test`, usando SQLite en memoria.
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+4. Ejecutar las pruebas:
+
+```bash
+php artisan test
+```
 
 ## Pruebas
 
-| Prueba | Descripción | Resultado esperado |
+| Prueba | Descripcion | Resultado esperado |
 |---|---|---|
-| `Tests\Unit\ExampleTest` | Prueba unitaria de ejemplo | Pasa |
-| `Tests\Feature\ExampleTest` | Verifica que la aplicación responde correctamente | Pasa |
-| `Tests\Feature\HomePageTest` | Realiza una petición GET a `/` y verifica un código de éxito (HTTP 200) | Pasa |
+| `Tests\Unit\ExampleTest` | Verifica que `true` es `true` | Pasa |
+| `Tests\Feature\ExampleTest` | Solicitud GET a `/`, espera HTTP 200 | Pasa |
+| `Tests\Feature\HomePageTest` | Solicitud GET a `/`, verifica respuesta exitosa | Pasa |
 
-**Resultado obtenido en local:** `Tests: 3 passed (3 assertions)`.
+Las pruebas usan `APP_ENV=testing`, `DB_CONNECTION=sqlite` y `DB_DATABASE=:memory:`, definidos en `phpunit.xml`, por lo que no dependen de MySQL ni de un archivo `.env` con base de datos configurada.
 
-![Pruebas locales](capturas/pruebas-locales.png)
+## Pipeline de integracion continua
 
-Las pruebas usan las variables `APP_ENV=testing`, `DB_CONNECTION=sqlite` y `DB_DATABASE=:memory:`, por lo que no dependen de MySQL.
+El workflow `.github/workflows/ci.yml` se ejecuta en cada `push` o `pull request` a `main`.
+
+Pasos del job `laravel-tests`:
+
+1. Obtener el codigo fuente con `actions/checkout@v4`.
+2. Configurar PHP 8.2 con las extensiones necesarias usando `shivammathur/setup-php@v2`.
+3. Copiar `.env.example` a `.env`.
+4. Instalar dependencias con `composer install`.
+5. Generar la clave de aplicacion con `php artisan key:generate`.
+6. Instalar dependencias de Node y compilar el frontend con `npm install && npm run build`.
+7. Ejecutar las pruebas con `php artisan test` usando SQLite en memoria.
 
 ## Evidencias
 
-### Ejecución exitosa
+### Ejecucion exitosa
 
-- **Fecha:** 16/10/2026
-- **Commit:** Primer comit (`9b7b4f2`)
-- **Resultado:** exitoso. Los 9 pasos terminaron en verde en 18 s y las 3 pruebas pasaron.
-- **Enlace:** https://github.com/EduarCas231/pipeline/actions/runs/38979252315
+- Commit: `9b7b4f2`
+- Resultado: 3 pruebas en verde, 9 pasos completados en 18 s.
+- Enlace: https://github.com/EduarCas231/pipeline/actions/runs/38979252315
 
-![Ejecución exitosa](capturas/ejecucion-exitosa.png)
+### Ejecucion fallida (controlada)
 
-GitHub mostró una advertencia (la acción `actions/checkout@v4` usa Node.js 20, que se está retirando) y un aviso (la etiqueta `ubuntu-latest` migrará a Ubuntu 26 el 19 de octubre de 2026). Ninguno afectó el resultado.
+Se sustituyo `assertSuccessful()` por `assertStatus(404)` en `HomePageTest.php`.
 
-### Ejecución fallida (controlada)
+Error obtenido:
 
-- **Fecha:** [fecha]
-- **Commit:** Prueba fallida controlada ([hash])
-- **Cambio realizado:** en `HomePageTest.php` se sustituyó `assertSuccessful()` por `assertStatus(404)`.
-- **Error:** `Expected response status code [404] but received 200.`
-- **Interpretación:** la ruta `/` responde correctamente con HTTP 200, pero la prueba esperaba 404, por lo que la aserción falló y GitHub Actions marcó el job como fallido.
-- **Solución:** restaurar la aserción correcta `assertSuccessful()`.
-- **Enlace:** [enlace de la ejecución fallida]
+```
+Expected response status code [404] but received 200.
+```
 
-![Ejecución fallida](capturas/ejecucion-fallida.png)
-
-### Ejecución exitosa posterior a la corrección
-
-- **Fecha:** [fecha]
-- **Commit:** Corregir prueba ([hash])
-- **Resultado:** exitoso, con las 3 pruebas en verde.
-- **Enlace:** [enlace de la ejecución corregida]
-
-![Ejecución corregida](capturas/ejecucion-corregida.png)
+La ruta `/` responde con 200, por lo que la asercion fallo y GitHub Actions marco el job como fallido. Al restaurar `assertSuccessful()` el pipeline volvio a aprobarse.
 
 ## Conclusiones
 
-- El pipeline detectó automáticamente el error introducido a propósito en la prueba (`assertStatus(404)` frente a una respuesta 200), lo que demuestra que no solo se ejecuta, sino que también comunica los fallos.
-- Al restaurar la aserción correcta y volver a enviar los cambios, el pipeline volvió a aprobarse, confirmando que la corrección fue efectiva.
-- La integración continua reduce el riesgo de integrar código defectuoso, da retroalimentación inmediata en cada push, garantiza que las dependencias se instalen de forma reproducible y facilita encontrar el origen de los errores mediante los logs.
-- Como mejora futura, se pueden actualizar las versiones de las acciones y agregar una etapa de construcción del frontend o de despliegue como paso independiente.
+- El pipeline detecto automaticamente el error introducido a proposito, demostrando que no solo se ejecuta sino que comunica los fallos.
+- La integracion continua garantiza que las dependencias se instalen de forma reproducible y da retroalimentacion inmediata en cada push.
+- Como mejora futura se pueden actualizar las versiones de las acciones y agregar una etapa de despliegue independiente.
