@@ -10,6 +10,7 @@
     <div class="container-ps">
         <div class= "title">
             <h1>Pantalla de inicio</h1>
+            <h2>Hola</h2>
         </div>
     </div>
 </body>
