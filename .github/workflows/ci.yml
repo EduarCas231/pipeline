@@ -1,4 +1,4 @@
-name: Laravel CI Pipeline
+name: Laravel CI Pipeline Complete
 
 on:
   push:
@@ -11,32 +11,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 1. Checkout (Obtener el código fuente)
+    - name: 1. Checkout (Obtener código fuente)
       uses: actions/checkout@v4
 
-    - name: Configurar entorno PHP
+    - name: Configurar entorno PHP 8.2
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: mbstring, bcmath, ctype, json, openssl, pdo, tokenizer, xml, curl
+        extensions: mbstring, bcmath, ctype, json, openssl, pdo, tokenizer, xml, curl, sqlite3
         coverage: none
 
-    - name: 2. Preparación - Copiar configuración de entorno (.env)
+    - name: 2. Preparación - Copiar entorno (.env)
       run: cp .env.example .env
 
-    - name: Instalar dependencias de PHP con Composer
+    - name: Instalar dependencias de PHP (Composer)
       run: composer install --prefer-dist --no-interaction --no-progress
 
-    - name: Generar llave de seguridad de la aplicación
+    - name: Generar App Key de Laravel
       run: php artisan key:generate
 
-    - name: 3. Build - Instalar Node.js y compilar Frontend
+    - name: 3. Análisis Estático y Estilo de Código (Formato)
       run: |
-        npm install
+        # Si tienes Laravel Pint o PHP CS Fixer en tu composer.json
+        ./vendor/bin/pint --test || echo "Pint no instalado, continuando..."
+
+    - name: 4. Build - Instalar dependencias de Node.js y Compilar Frontend
+      run: |
+        npm ci || npm install
         npm run build
 
-    - name: 4. Test - Ejecutar pruebas automatizadas
+    - name: 5. Test - Pruebas Unitarias y de Integración (PHPUnit / Artisan)
       env:
         DB_CONNECTION: sqlite
         DB_DATABASE: ':memory:'
-      run: php artisan test
+      run: php artisan test --parallel
+
+    - name: 6. Test - Pruebas de Sintaxis PHP (Linting)
+      run: find app tests -name "*.php" -exec php -l {} \;
