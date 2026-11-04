@@ -33,7 +33,7 @@ jobs:
     - name: 3. Build - Instalar Node.js y compilar Frontend
       run: |
         npm install
-        npm run build
+        npm run buildas
 
     - name: 4. Test - Ejecutar pruebas automatizadas
       env:
