@@ -1,4 +1,4 @@
-name: Laravel CI Pipeline
+name: Laravel CD Release Pipeline
 
 on:
   push:
@@ -7,36 +7,52 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  laravel-tests:
+  laravel-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 1. Checkout (Obtener el código fuente)
+    - name: 1. Checkout del código fuente
       uses: actions/checkout@v4
 
-    - name: Configurar entorno PHP
+    - name: 2. Configurar entorno PHP 8.2
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: mbstring, bcmath, ctype, json, openssl, pdo, tokenizer, xml, curl
+        extensions: mbstring, bcmath, ctype, json, openssl, pdo, tokenizer, xml, curl, sqlite3
         coverage: none
 
-    - name: 2. Preparación - Copiar configuración de entorno (.env)
+    - name: 3. Preparar variables de entorno (.env)
       run: cp .env.example .env
 
-    - name: Instalar dependencias de PHP con Composer
-      run: composer install --prefer-dist --no-interaction --no-progress
+    - name: 4. Instalar dependencias de producción (Composer)
+      run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
-    - name: Generar llave de seguridad de la aplicación
+    - name: 5. Generar App Key de Laravel
       run: php artisan key:generate
 
-    - name: 3. Build - Instalar Node.js y compilar Frontend
+    - name: 6. Instalar Node.js y compilar Frontend (Vite)
       run: |
-        npm install
+        npm ci || npm install
         npm run build
 
-    - name: 4. Test - Ejecutar pruebas automatizadas
+    - name: 7. Ejecutar pruebas automatizadas
       env:
         DB_CONNECTION: sqlite
         DB_DATABASE: ':memory:'
       run: php artisan test
+
+    - name: 8. Limpieza de archivos sensibles antes del empaquetado
+      run: |
+        rm -f .env
+        rm -rf storage/logs/*
+
+    - name: 9. Generar archivo comprimido (Artefacto v1.0.0)
+      run: |
+        zip -r release-v1.0.0.zip . -x ".git/*" ".github/*" "tests/*" "node_modules/*" ".env*"
+
+    - name: 10. Publicar Artefacto de Liberación en GitHub Actions
+      uses: actions/upload-artifact@v4
+      with:
+        name: laravel-release-v1.0.0
+        path: release-v1.0.0.zip
+        retention-days: 7
