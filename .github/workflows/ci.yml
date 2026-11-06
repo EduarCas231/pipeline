@@ -1,61 +1,26 @@
-name: Laravel CD Release Pipeline
+name: Laravel CD Deployment Pipeline
 
 on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+  workflow_run:
+    workflows: ["Laravel CD Release Pipeline"]
+    types:
+      - completed
 
 jobs:
-  laravel-release:
+  deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-    - name: 1. Checkout del código fuente
-      uses: actions/checkout@v4
-
-    - name: 2. Configurar entorno PHP 8.2
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, bcmath, ctype, json, openssl, pdo, tokenizer, xml, curl, sqlite3
-        coverage: none
-
-    - name: 3. Preparar variables de entorno (.env)
-      run: cp .env.example .env
-
-    - name: 4. Instalar TODAS las dependencias de Composer (incluyendo dev para testing)
-      run: composer install --prefer-dist --no-interaction
-
-    - name: 5. Generar App Key de Laravel
-      run: php artisan key:generate
-
-    - name: 6. Instalar Node.js y compilar Frontend (Vite)
-      run: |
-        npm ci || npm install
-        npm run build
-
-    - name: 7. Ejecutar pruebas automatizadas
-      env:
-        DB_CONNECTION: sqlite
-        DB_DATABASE: ':memory:'
-      run: php artisan test
-
-    - name: 8. Preparar dependencias exclusivas de producción
-      run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-
-    - name: 9. Limpieza de archivos sensibles antes del empaquetado
-      run: |
-        rm -f .env
-        rm -rf storage/logs/*
-
-    - name: 10. Generar archivo comprimido (Artefacto v1.0.0)
-      run: |
-        zip -r release-v1.0.0.zip . -x ".git/*" ".github/*" "tests/*" "node_modules/*" ".env*"
-
-    - name: 11. Publicar Artefacto de Liberación en GitHub Actions
-      uses: actions/upload-artifact@v4
+    - name: 1. Descargar artefacto de liberación
+      uses: actions/download-artifact@v4
       with:
         name: laravel-release-v1.0.0
-        path: release-v1.0.0.zip
-        retention-days: 7
+        path: /tmp
+
+    - name: 2. Simular transferencia y despliegue en servidor (SSH / Entorno de Pruebas)
+      run: |
+        echo "Simulando conexión SSH al servidor de pruebas..."
+        echo "Transfiriendo archivo /tmp/release-v1.0.0.zip..."
+        ls -la /tmp/release-v1.0.0.zip
+        echo "Artefacto listo para el despliegue automatizado."
