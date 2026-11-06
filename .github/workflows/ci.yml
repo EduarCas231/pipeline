@@ -24,8 +24,8 @@ jobs:
     - name: 3. Preparar variables de entorno (.env)
       run: cp .env.example .env
 
-    - name: 4. Instalar dependencias de producción (Composer)
-      run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+    - name: 4. Instalar TODAS las dependencias de Composer (incluyendo dev para testing)
+      run: composer install --prefer-dist --no-interaction
 
     - name: 5. Generar App Key de Laravel
       run: php artisan key:generate
@@ -41,16 +41,19 @@ jobs:
         DB_DATABASE: ':memory:'
       run: php artisan test
 
-    - name: 8. Limpieza de archivos sensibles antes del empaquetado
+    - name: 8. Preparar dependencias exclusivas de producción
+      run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+    - name: 9. Limpieza de archivos sensibles antes del empaquetado
       run: |
         rm -f .env
         rm -rf storage/logs/*
 
-    - name: 9. Generar archivo comprimido (Artefacto v1.0.0)
+    - name: 10. Generar archivo comprimido (Artefacto v1.0.0)
       run: |
         zip -r release-v1.0.0.zip . -x ".git/*" ".github/*" "tests/*" "node_modules/*" ".env*"
 
-    - name: 10. Publicar Artefacto de Liberación en GitHub Actions
+    - name: 11. Publicar Artefacto de Liberación en GitHub Actions
       uses: actions/upload-artifact@v4
       with:
         name: laravel-release-v1.0.0
